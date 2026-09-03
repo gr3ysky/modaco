@@ -7,8 +7,8 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { ProductCategory } from './productCategory.entity.js';
-import { Product } from './product.entity.js';
+import { ProductCategoryEntity } from './productCategory.entity.js';
+import { ProductEntity } from './product.entity.js';
 
 export enum PromotionDiscountType {
   PERCENTAGE = 'percentage',
@@ -54,17 +54,17 @@ export class Promotion {
   @Column({ name: 'end_date', type: 'timestamptz' })
   endDate: Date;
 
-  @ManyToOne(() => Product, (product) => product.promotions, {
+  @ManyToOne(() => ProductEntity, (product) => product.promotions, {
     nullable: true,
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'product_id' })
-  product: Product | null;
+  product: ProductEntity | null;
 
-  @ManyToOne(() => ProductCategory, (category) => category.promotions, {
+  @ManyToOne(() => ProductCategoryEntity, (category) => category.promotions, {
     nullable: true,
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'category_id' })
-  category: ProductCategory | null;
+  category: ProductCategoryEntity | null;
 }

@@ -10,6 +10,24 @@ EXCEPTION
   WHEN duplicate_object THEN NULL;
 END $$;
 
+DO $$
+BEGIN
+  CREATE TYPE product_import_status_enum AS ENUM ('created', 'processing', 'completed', 'failed', 'partially_completed');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+
+create table if not exists product_imports (
+  id uuid primary key default uuid_generate_v4(),
+  file_name varchar(255) not null,
+  status product_import_status_enum not null default 'created',
+  created_at timestamptz not null default now(),
+  process_started_at timestamptz  null,
+  process_completed_at timestamptz  null
+);
+
+
 CREATE TABLE IF NOT EXISTS product_categories (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   name varchar(120) NOT NULL UNIQUE

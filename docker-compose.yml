@@ -10,6 +10,8 @@ services:
       DB_HOST: postgres
     ports:
       - '${API_PORT:-3000}:3000'
+    volumes:
+      - shared_data:/app/data
     depends_on:
       postgres:
         condition: service_healthy
@@ -37,3 +39,4 @@ services:
 
 volumes:
   postgres_data:
+  shared_data:

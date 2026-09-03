@@ -8,16 +8,16 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AssignPromotionDto } from '../dto/assign-promotion.dto.js';
 import { CreatePromotionDto } from '../dto/create-promotion.dto.js';
-import { ProductCategory } from '../entities/productCategory.entity.js';
+import { ProductCategoryEntity } from '../entities/productCategory.entity.js';
 import {
   Promotion,
   PromotionDiscountType,
 } from '../entities/promotion.entity.js';
-import { Product } from '../entities/product.entity.js';
+import { ProductEntity } from '../entities/product.entity.js';
 
 type PromotionTarget = {
-  product: Product | null;
-  category: ProductCategory | null;
+  product: ProductEntity | null;
+  category: ProductCategoryEntity | null;
   categoryId: string;
 };
 
@@ -29,10 +29,10 @@ export class PromotionsService {
   constructor(
     @InjectRepository(Promotion)
     private readonly promotionsRepository: Repository<Promotion>,
-    @InjectRepository(Product)
-    private readonly productsRepository: Repository<Product>,
-    @InjectRepository(ProductCategory)
-    private readonly categoriesRepository: Repository<ProductCategory>,
+    @InjectRepository(ProductEntity)
+    private readonly productsRepository: Repository<ProductEntity>,
+    @InjectRepository(ProductCategoryEntity)
+    private readonly categoriesRepository: Repository<ProductCategoryEntity>,
   ) {}
 
   async create(input: CreatePromotionDto): Promise<Promotion> {

@@ -93,3 +93,19 @@ $ npm run test:e2e
 # test coverage
 $ npm run test:cov
 ```
+
+generate sample data
+
+```
+node ./scripts/generateSampleData.cjs
+```
+
+Send sample data
+
+```
+curl --request POST \
+  --url http://localhost:3000/products \
+  --header 'Content-Type: multipart/form-data' \
+  --header 'User-Agent: insomnia/11.4.0' \
+  --form file=@./scripts/generated_sample_data.csv
+```

@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { ListProductsQueryDto } from '../dto/list-products-query.dto.js';
-import { Product } from '../entities/product.entity.js';
+import { ProductEntity } from '../entities/product.entity.js';
 
 type SortOrder = 'ASC' | 'DESC';
 
@@ -41,8 +41,8 @@ const UUID_PATTERN =
 @Injectable()
 export class ProductsService {
   constructor(
-    @InjectRepository(Product)
-    private readonly productsRepository: Repository<Product>,
+    @InjectRepository(ProductEntity)
+    private readonly productsRepository: Repository<ProductEntity>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -127,7 +127,7 @@ export class ProductsService {
     };
   }
 
-  async findOne(id: string): Promise<Product> {
+  async findOne(id: string): Promise<ProductEntity> {
     const now = new Date();
     const product = await this.productsRepository
       .createQueryBuilder('product')

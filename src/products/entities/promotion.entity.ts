@@ -29,7 +29,7 @@ export enum PromotionDiscountType {
 @Check('"value" >= 0')
 @Check('"start_date" < "end_date"')
 @Check('NOT ("product_id" IS NOT NULL AND "category_id" IS NOT NULL)')
-export class Promotion {
+export class PromotionEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

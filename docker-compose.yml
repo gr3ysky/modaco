@@ -21,6 +21,20 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  product-import-consumer:
+    build:
+      context: .
+      target: production
+    command: ['node', 'dist/consumers/main.js']
+    env_file:
+      - .env
+    environment:
+      RABBITMQ_URL: ${RABBITMQ_URL}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
   postgres:
     image: postgres:16-alpine
     env_file:

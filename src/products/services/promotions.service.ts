@@ -8,7 +8,7 @@ import { Repository } from 'typeorm';
 import { AssignPromotionDto } from '../dto/assign-promotion.dto.js';
 import { CreatePromotionDto } from '../dto/create-promotion.dto.js';
 import { ProductCategoryEntity } from '../entities/productCategory.entity.js';
-import { Promotion } from '../entities/promotion.entity.js';
+import { PromotionEntity } from '../entities/promotion.entity.js';
 import { ProductEntity } from '../entities/product.entity.js';
 
 type PromotionTarget = {
@@ -20,15 +20,15 @@ type PromotionTarget = {
 @Injectable()
 export class PromotionsService {
   constructor(
-    @InjectRepository(Promotion)
-    private readonly promotionsRepository: Repository<Promotion>,
+    @InjectRepository(PromotionEntity)
+    private readonly promotionsRepository: Repository<PromotionEntity>,
     @InjectRepository(ProductEntity)
     private readonly productsRepository: Repository<ProductEntity>,
     @InjectRepository(ProductCategoryEntity)
     private readonly categoriesRepository: Repository<ProductCategoryEntity>,
   ) {}
 
-  async create(input: CreatePromotionDto): Promise<Promotion> {
+  async create(input: CreatePromotionDto): Promise<PromotionEntity> {
     const details = {
       name: input.name,
       discountType: input.discountType,
@@ -55,7 +55,10 @@ export class PromotionsService {
     return promotion;
   }
 
-  async assign(id: string, input: AssignPromotionDto): Promise<Promotion> {
+  async assign(
+    id: string,
+    input: AssignPromotionDto,
+  ): Promise<PromotionEntity> {
     const promotion = await this.findById(id);
     const target = await this.resolveTarget(input);
     await this.ensureNoConflict({
@@ -72,7 +75,7 @@ export class PromotionsService {
     return assignedPromotion;
   }
 
-  async cancel(id: string): Promise<Promotion> {
+  async cancel(id: string): Promise<PromotionEntity> {
     const promotion = await this.findById(id);
     promotion.product = null;
     promotion.category = null;
@@ -161,7 +164,7 @@ export class PromotionsService {
     }
   }
 
-  private async findById(id: string): Promise<Promotion> {
+  private async findById(id: string): Promise<PromotionEntity> {
     const promotion = await this.promotionsRepository.findOne({
       where: { id },
     });

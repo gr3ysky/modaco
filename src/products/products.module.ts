@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductCategoryEntity } from './entities/productCategory.entity.js';
 import { ProductEntity } from './entities/product.entity.js';
-import { Promotion } from './entities/promotion.entity.js';
+import { PromotionEntity } from './entities/promotion.entity.js';
 import { ProductsController } from '../products/controllers/products.controller.js';
 import { ProductsService } from '../products/services/products.service.js';
 import { PromotionsController } from './controllers/promotions.controller.js';
@@ -15,7 +15,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     TypeOrmModule.forFeature([
       ProductEntity,
       ProductCategoryEntity,
-      Promotion,
+      PromotionEntity,
       ProductImportEntity,
     ]),
     ScheduleModule.forRoot(),

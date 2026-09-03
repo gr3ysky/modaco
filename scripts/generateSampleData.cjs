@@ -2,7 +2,7 @@
 const { faker } = require('@faker-js/faker');
 const fs = require('fs');
 
-const size = 500_000;
+const size = 500_000; // Number of sample records to generate
 const filePath = './scripts/generated_sample_data.csv';
 const categories = [ 'Electronics', 'Home & Kitchen', 'Office Supplies' ];
 

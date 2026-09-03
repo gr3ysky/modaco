@@ -11,9 +11,11 @@ import * as fs from 'fs';
 import csv from 'csv-parser';
 import amqp, { ChannelModel, ConfirmChannel } from 'amqplib';
 import { setTimeout } from 'node:timers/promises';
-
-const PRODUCT_IMPORT_QUEUE = 'product-imports';
-const PUBLISH_BATCH_SIZE = 10;
+import {
+  PRODUCT_IMPORT_QUEUE,
+  PRODUCT_IMPORT_QUEUE_OPTIONS,
+} from '../rabbitmq/product-import-queue.js';
+const PUBLISH_BATCH_SIZE = 1000;
 const MAX_PUBLISH_ATTEMPTS = 3;
 
 type ProductImportRow = Record<string, string>;
@@ -41,7 +43,7 @@ export class ProductImportService implements OnModuleDestroy {
     return productImportEntity;
   }
 
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  @Cron(CronExpression.EVERY_MINUTE)
   async processProductImport(): Promise<void> {
     this.logger.log('Processing product import...');
     //find the product import entities with status CREATED  or FAILED and process them
@@ -162,7 +164,10 @@ export class ProductImportService implements OnModuleDestroy {
     }
     this.connection = await amqp.connect(rabbitMqUrl);
     this.channel = await this.connection.createConfirmChannel();
-    await this.channel.assertQueue(PRODUCT_IMPORT_QUEUE, { durable: true });
+    await this.channel.assertQueue(
+      PRODUCT_IMPORT_QUEUE,
+      PRODUCT_IMPORT_QUEUE_OPTIONS,
+    );
     return this.channel;
   }
 

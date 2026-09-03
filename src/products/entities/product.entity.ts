@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import type { Relation } from 'typeorm';
 import { ProductCategoryEntity } from './productCategory.entity.js';
-import { Promotion } from './promotion.entity.js';
+import { PromotionEntity } from './promotion.entity.js';
 
 @Entity({ name: 'products' })
 @Index('IDX_products_category_base_price', ['category', 'basePrice', 'id'])
@@ -40,6 +40,6 @@ export class ProductEntity {
   @JoinColumn({ name: 'category_id' })
   category: Relation<ProductCategoryEntity>;
 
-  @OneToMany(() => Promotion, (promotion) => promotion.product)
-  promotions: Promotion[];
+  @OneToMany(() => PromotionEntity, (promotion) => promotion.product)
+  promotions: PromotionEntity[];
 }

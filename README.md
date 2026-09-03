@@ -31,7 +31,9 @@ Product listing prices are calculated live from the active direct or category
 promotion, falling back to the product `base_price` when no promotion is active.
 Each uploaded CSV row is published persistently to RabbitMQ's durable
 `product-imports` queue. Messages include the original import path in the
-`filePath` header for downstream consumers.
+`filePath` header for downstream consumers. The independently deployed
+`product-import-consumer` acknowledges messages after logging them and routes
+failures to the durable `product-imports.dead` dead-letter queue.
 
 ## List products
 

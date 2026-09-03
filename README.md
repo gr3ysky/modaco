@@ -1,3 +1,7 @@
+## Entity relationship diagram
+
+![Entity relationship diagram](./ERD.png)
+
 ## Project setup
 
 ```bash

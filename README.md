@@ -18,23 +18,20 @@ environment.
 docker compose up --build
 ```
 
-This starts the API at `http://localhost:3000` and PostgreSQL at `localhost:5432`.
-The API waits for PostgreSQL's health check before starting. To stop the stack,
-run `docker compose down`; append `-v` only when you also want to remove the
-database volume. On a fresh database volume, `scripts/init.sql` creates the
-schema and adds sample categories and products. PostgreSQL init scripts only
-run for an empty data directory; use `docker compose down -v` before starting
-again if you intentionally want to recreate local sample data.
+This starts the API at `http://localhost:3000`, PostgreSQL at `localhost:5432`,
+and RabbitMQ at `localhost:5672` (management UI at `http://localhost:15672`).
+The API waits for PostgreSQL and RabbitMQ health checks before starting. To stop
+the stack, run `docker compose down`; append `-v` only when you also want to
+remove the database volume. On a fresh database volume, `scripts/init.sql`
+creates the schema and adds sample categories and products. PostgreSQL init
+scripts only run for an empty data directory; use `docker compose down -v`
+before starting again if you intentionally want to recreate local sample data.
 
 Product listing prices are calculated live from the active direct or category
 promotion, falling back to the product `base_price` when no promotion is active.
-For an existing database volume that previously created the materialized view,
-remove it once with:
-
-```bash
-docker compose exec -T postgres sh -c \
-  'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /docker-entrypoint-initdb.d/maintenance/drop-product-listings-view.sql'
-```
+Each uploaded CSV row is published persistently to RabbitMQ's durable
+`product-imports` queue. Messages include the original import path in the
+`filePath` header for downstream consumers.
 
 ## List products
 
@@ -100,13 +97,13 @@ $ npm run test:cov
 
 ## Generate sample data
 
-```
+```bash
 node ./scripts/generateSampleData.cjs
 ```
 
 ## Send sample data
 
-```
+```bash
 curl -X POST http://localhost:3000/products \
 -F "file=@./scripts/generated_sample_data.csv"
 ```

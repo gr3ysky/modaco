@@ -1,28 +1,33 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import {
   ProductImportEntity,
   ProductImportStatus,
 } from '../entities/productImport.entity.js';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 import * as fs from 'fs';
 import csv from 'csv-parser';
-import { ProductEntity } from '../entities/product.entity.js';
-import { ProductCategoryEntity } from '../entities/productCategory.entity.js';
+import amqp, { ChannelModel, ConfirmChannel } from 'amqplib';
+import { setTimeout } from 'node:timers/promises';
+
+const PRODUCT_IMPORT_QUEUE = 'product-imports';
+const PUBLISH_BATCH_SIZE = 10;
+const MAX_PUBLISH_ATTEMPTS = 3;
+
+type ProductImportRow = Record<string, string>;
 
 @Injectable()
-export class ProductImportService {
+export class ProductImportService implements OnModuleDestroy {
   private readonly logger = new Logger(ProductImportService.name);
-  private readonly BATCH_SIZE = 1000;
+  private connection?: ChannelModel;
+  private channel?: ConfirmChannel;
+
   constructor(
     @InjectRepository(ProductImportEntity)
     private readonly productImportRepository: Repository<ProductImportEntity>,
-    @InjectRepository(ProductEntity)
-    private readonly productRepository: Repository<ProductEntity>,
-    @InjectRepository(ProductCategoryEntity)
-    private readonly productCategoryRepository: Repository<ProductCategoryEntity>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async createProductImport(file: string): Promise<ProductImportEntity> {
@@ -51,12 +56,24 @@ export class ProductImportService {
       return;
     }
 
+    const queryRunner = this.dataSource.createQueryRunner();
+    let lockAcquired = false;
+
     try {
-      // Acquires lock for the product import task to prevent concurrent processing
-      await this.productImportRepository.query(
-        'SELECT pg_advisory_lock(hashtext($1))',
+      await queryRunner.connect();
+      const lockResult = (await queryRunner.query(
+        'SELECT pg_try_advisory_lock(hashtext($1)) AS locked',
         [productImportTask.file],
-      );
+      )) as { locked: boolean }[];
+      const locked = lockResult[0]?.locked === true;
+      if (!locked) {
+        this.logger.log(
+          `Product import task ${productImportTask.id} is already being processed.`,
+        );
+        return;
+      }
+
+      lockAcquired = true;
       await this.process(productImportTask);
     } catch (error: any) {
       this.logger.error(
@@ -64,66 +81,37 @@ export class ProductImportService {
       );
       await this.setProductImportFailed(productImportTask);
     } finally {
-      // Releases lock for the product import task after processing
-      await this.productImportRepository.query(
-        'SELECT pg_advisory_unlock(hashtext($1))',
-        [productImportTask.file],
-      );
+      if (lockAcquired) {
+        await queryRunner.query('SELECT pg_advisory_unlock(hashtext($1))', [
+          productImportTask.file,
+        ]);
+      }
+      await queryRunner.release();
     }
   }
-  //TODO: add error handling for partially completed imports, and implement a retry mechanism for failed imports. Also, consider adding a notification system to alert when an import fails.
-  //TODO: implement better validating for parsing Product while reading the CSV file, and handle cases where the CSV file is malformed or contains invalid data.
+
   private async process(
     productImportEntity: ProductImportEntity,
   ): Promise<void> {
     this.logger.log(`Processing file ${productImportEntity.file}...`);
     try {
       await this.setProductImportStarted(productImportEntity);
-      const productCategories = await this.productCategoryRepository.find();
-      let batchBuffer: ProductEntity[] = [];
-      let totalProcessed = 0;
       const fileStream = fs
         .createReadStream(productImportEntity.file)
         .pipe(csv());
+      let batch: ProductImportRow[] = [];
+      let rowNumber = 0;
 
       for await (const row of fileStream) {
-        //(name, sku, basePrice, stockQuantity, category);
-        let productCategory = productCategories.find(
-          (category) =>
-            category.name.toLowerCase() ===
-            row['category'].trim().toLowerCase(),
-        );
-        if (!productCategory) {
-          productCategory = await this.productCategoryRepository.save(
-            this.productCategoryRepository.create({
-              name: row['category'].trim(),
-            }),
-          );
-        }
-        const productEntity = this.productRepository.create({
-          name: row['name'],
-          sku: row['sku'],
-          basePrice: parseFloat(row['basePrice']),
-          stockQuantity: parseInt(row['stockQuantity']),
-          category: productCategory,
-        } satisfies Omit<ProductEntity, 'id' | 'promotions'>);
-
-        batchBuffer.push(productEntity);
-        if (batchBuffer.length >= this.BATCH_SIZE) {
-          await this.productRepository.save(batchBuffer);
-          totalProcessed += batchBuffer.length;
-          this.logger.log(
-            `Processed ${totalProcessed} products from file ${productImportEntity.file}`,
-          );
-          batchBuffer = [];
+        batch.push(row);
+        if (batch.length === PUBLISH_BATCH_SIZE) {
+          await this.publishBatch(productImportEntity, batch, rowNumber);
+          rowNumber += batch.length;
+          batch = [];
         }
       }
-      if (batchBuffer.length > 0) {
-        await this.productRepository.save(batchBuffer);
-        totalProcessed += batchBuffer.length;
-        this.logger.log(
-          `Processed ${totalProcessed} products from file ${productImportEntity.file}`,
-        );
+      if (batch.length > 0) {
+        await this.publishBatch(productImportEntity, batch, rowNumber);
       }
       await this.setProductImportCompleted(productImportEntity);
     } catch (error: any) {
@@ -157,5 +145,100 @@ export class ProductImportService {
     await this.productImportRepository.update(productImportEntity.id, {
       status: ProductImportStatus.FAILED,
     });
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.resetChannel();
+  }
+
+  private async getChannel(): Promise<ConfirmChannel> {
+    if (this.channel) {
+      return this.channel;
+    }
+
+    const rabbitMqUrl = process.env.RABBITMQ_URL;
+    if (!rabbitMqUrl) {
+      throw new Error('RABBITMQ_URL must be configured');
+    }
+    this.connection = await amqp.connect(rabbitMqUrl);
+    this.channel = await this.connection.createConfirmChannel();
+    await this.channel.assertQueue(PRODUCT_IMPORT_QUEUE, { durable: true });
+    return this.channel;
+  }
+
+  private async publishBatch(
+    productImportEntity: ProductImportEntity,
+    batch: ProductImportRow[],
+    startRowNumber: number,
+  ): Promise<void> {
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= MAX_PUBLISH_ATTEMPTS; attempt += 1) {
+      try {
+        const channel = await this.getChannel();
+        for (const [index, row] of batch.entries()) {
+          const canContinue = channel.sendToQueue(
+            PRODUCT_IMPORT_QUEUE,
+            Buffer.from(JSON.stringify(row)),
+            {
+              persistent: true,
+              messageId: `${productImportEntity.id}:${startRowNumber + index}`,
+              headers: { filePath: productImportEntity.file },
+            },
+          );
+          if (!canContinue) {
+            await this.waitForDrain(channel);
+          }
+        }
+        await channel.waitForConfirms();
+        return;
+      } catch (error) {
+        lastError = error;
+        this.logger.warn(
+          `Could not confirm import batch starting at row ${startRowNumber}; attempt ${attempt}/${MAX_PUBLISH_ATTEMPTS}`,
+        );
+        await this.resetChannel();
+        if (attempt < MAX_PUBLISH_ATTEMPTS) {
+          await setTimeout(1000);
+        }
+      }
+    }
+
+    throw lastError;
+  }
+
+  private async waitForDrain(channel: ConfirmChannel): Promise<void> {
+    await new Promise<void>((resolve, reject) => {
+      const cleanup = () => {
+        channel.off('drain', onDrain);
+        channel.off('error', onError);
+        channel.off('close', onClose);
+      };
+      const onDrain = () => {
+        cleanup();
+        resolve();
+      };
+      const onError = (error: Error) => {
+        cleanup();
+        reject(error);
+      };
+      const onClose = () => {
+        cleanup();
+        reject(new Error('RabbitMQ channel closed while waiting for drain'));
+      };
+
+      channel.once('drain', onDrain);
+      channel.once('error', onError);
+      channel.once('close', onClose);
+    });
+  }
+
+  private async resetChannel(): Promise<void> {
+    const channel = this.channel;
+    const connection = this.connection;
+    this.channel = undefined;
+    this.connection = undefined;
+    await channel?.close().catch(() => undefined);
+    await connection?.close().catch(() => undefined);
   }
 }

@@ -113,4 +113,3 @@ curl -X POST http://localhost:3000/products \
 ## Notes
 
 - We do not clear the files after the process. We would probably want them to be kept, ideally in a s3 bucket or similar.
-- Another efficient processing for product import can be achieved via RabbitMQ and multiple consumers. Current implementation uses distrubuted lock for handling concurrency issues. It is safe to use multiple instances of the api.

@@ -9,9 +9,7 @@
 
 ## Approach
 
-    I have chosen async processing for large input files. When user uploads a file, it is saved to a shared volume
-
-inside docker. When file is saved a record in file_imports table is created and a message to message broker is sent.
+I have chosen async processing for large input files. When user uploads a file, it is saved to a shared volume inside docker. When file is saved a record in file_imports table is created and a message to message broker is sent.
 For resilience the system tries to send the file import message 3 times.(Similar to transactional outbox pattern). The record
 keeps the file processing metadata and allows the system to use distributed lock against multiple processing.
 A file import consumer listens for messages and when a message is available it acquires a lock against the file name and asynchronously

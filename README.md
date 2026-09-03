@@ -87,14 +87,10 @@ $ npm run start:prod
 ## Run tests
 
 ```bash
-# unit tests
-$ npm run test
 
 # e2e tests
 $ npm run test:e2e
 
-# test coverage
-$ npm run test:cov
 ```
 
 ## Generate sample data
@@ -109,7 +105,3 @@ node ./scripts/generateSampleData.cjs
 curl -X POST http://localhost:3000/products \
 -F "file=@./scripts/generated_sample_data.csv"
 ```
-
-## Notes
-
-- We do not clear the files after the process. We would probably want them to be kept, ideally in a s3 bucket or similar.

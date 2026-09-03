@@ -1,26 +1,26 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-export enum ProductImportStatus {
+export enum FileImportStatus {
   CREATED = 'created',
-  PROCESSING = 'processing',
   COMPLETED = 'completed',
   FAILED = 'failed',
-  PARTIALLY_COMPLETED = 'partially_completed',
 }
-@Entity({ name: 'product_imports' })
-export class ProductImportEntity {
+@Entity({ name: 'file_imports' })
+export class FileImportEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
-  @Column({ type: 'varchar', length: 1023 })
-  file: string;
+  @Column({ name: 'file_name', type: 'varchar', length: 255, unique: true })
+  fileName: string;
+  @Column({ name: 'file_path', type: 'varchar', length: 1023 })
+  filePath: string;
 
   @Column({
     name: 'status',
     type: 'enum',
-    enum: ProductImportStatus,
-    enumName: 'product_import_status_enum',
+    enum: FileImportStatus,
+    enumName: 'file_process_status_enum',
   })
-  status: ProductImportStatus;
+  status: FileImportStatus;
   @Column({ name: 'created_at', type: 'timestamptz', default: () => 'NOW()' })
   createdAt: Date;
   @Column({ name: 'process_started_at', type: 'timestamptz', nullable: true })

@@ -9,7 +9,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { PromotionsController } from '../src/products/controllers/promotions.controller.js';
 import { ProductsController } from '../src/products/controllers/products.controller.js';
-import { ProductImportService } from '../src/products/services/productImport.service.js';
+import { ProductImportService } from '../src/products/services/fileImport.service.js';
 import { ProductsService } from '../src/products/services/products.service.js';
 import { PromotionsService } from '../src/products/services/promotions.service.js';
 
@@ -131,11 +131,15 @@ describe('API endpoints (e2e)', () => {
     productsService.findOne.mockRejectedValue(
       new NotFoundException(`Product with ID ${productId} was not found`),
     );
-    await request(app.getHttpServer()).get(`/products/${productId}`).expect(404);
+    await request(app.getHttpServer())
+      .get(`/products/${productId}`)
+      .expect(404);
   });
 
   it('POST /products accepts a CSV upload and creates an import job', async () => {
-    productImportService.createProductImport.mockResolvedValue({ id: 'import-id' });
+    productImportService.createProductImport.mockResolvedValue({
+      id: 'import-id',
+    });
 
     const response = await request(app.getHttpServer())
       .post('/products')
@@ -229,7 +233,10 @@ describe('API endpoints (e2e)', () => {
       id: promotionId,
       category: { id: categoryId },
     });
-    expect(promotionsService.assign).toHaveBeenCalledWith(promotionId, assignment);
+    expect(promotionsService.assign).toHaveBeenCalledWith(
+      promotionId,
+      assignment,
+    );
   });
 
   it('PATCH /promotions/:id/cancel cancels a promotion', async () => {

@@ -7,8 +7,8 @@ import { ProductsController } from '../products/controllers/products.controller.
 import { ProductsService } from '../products/services/products.service.js';
 import { PromotionsController } from './controllers/promotions.controller.js';
 import { PromotionsService } from './services/promotions.service.js';
-import { ProductImportService } from './services/productImport.service.js';
-import { ProductImportEntity } from './entities/productImport.entity.js';
+import { FileImportService } from './services/fileImport.service.js';
+import { FileImportEntity } from './entities/fileImport.entity.js';
 import { ScheduleModule } from '@nestjs/schedule';
 @Module({
   imports: [
@@ -16,11 +16,11 @@ import { ScheduleModule } from '@nestjs/schedule';
       ProductEntity,
       ProductCategoryEntity,
       PromotionEntity,
-      ProductImportEntity,
+      FileImportEntity,
     ]),
     ScheduleModule.forRoot(),
   ],
   controllers: [ProductsController, PromotionsController],
-  providers: [ProductsService, PromotionsService, ProductImportService],
+  providers: [ProductsService, PromotionsService, FileImportService],
 })
 export class ProductsModule {}

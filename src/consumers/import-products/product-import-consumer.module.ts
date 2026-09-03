@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ProductImportConsumerService } from './product-import-consumer.service.js';
-import { ProductsService } from '../products/services/products.service.js';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ProductEntity } from '../products/entities/product.entity.js';
-import { ProductCategoryEntity } from '../products/entities/productCategory.entity.js';
+import { ProductEntity } from '../../products/entities/product.entity.js';
+import { ProductCategoryEntity } from '../../products/entities/productCategory.entity.js';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ProductImportService } from './productImport.service.js';
-import { PromotionEntity } from '../products/entities/promotion.entity.js';
+import { PromotionEntity } from '../../products/entities/promotion.entity.js';
 
 @Module({
   imports: [

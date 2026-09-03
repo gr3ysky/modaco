@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  UnprocessableEntityException,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -20,13 +21,13 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
-import { ProductImportService } from '../services/productImport.service.js';
+import { FileImportService } from '../services/fileImport.service.js';
 
 @Controller('products')
 export class ProductsController {
   constructor(
     private readonly productsService: ProductsService,
-    private readonly productImportService: ProductImportService,
+    private readonly fileImportService: FileImportService,
   ) {}
 
   @Get()
@@ -70,12 +71,16 @@ export class ProductsController {
     )
     file: Express.Multer.File,
   ) {
-    await this.productImportService.createProductImport(file.path);
-    return {
-      message: 'File saved successfully!',
-      filename: file.filename,
-      savedPath: file.path,
-      sizeBytes: file.size,
-    };
+    if (
+      await this.fileImportService.trySendFileToQueue(file.filename, file.path)
+    ) {
+      return {
+        message: 'File saved successfully!',
+        filename: file.filename,
+        savedPath: file.path,
+        sizeBytes: file.size,
+      };
+    }
+    throw new UnprocessableEntityException('Failed to upload the file');
   }
 }

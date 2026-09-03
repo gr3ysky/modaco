@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ProductCategoryEntity } from '../products/entities/productCategory.entity.js';
-import { ProductEntity } from '../products/entities/product.entity.js';
+import { ProductCategoryEntity } from '../../products/entities/productCategory.entity.js';
+import { ProductEntity } from '../../products/entities/product.entity.js';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 

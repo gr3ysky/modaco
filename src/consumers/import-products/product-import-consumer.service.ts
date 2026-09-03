@@ -11,11 +11,11 @@ import {
   PRODUCT_IMPORT_DEAD_LETTER_ROUTING_KEY,
   PRODUCT_IMPORT_QUEUE,
   PRODUCT_IMPORT_QUEUE_OPTIONS,
-} from '../products/rabbitmq/product-import-queue.js';
+} from '../../products/rabbitmq/product-import-queue.js';
 import { ProductImportService } from './productImport.service.js';
 
 const CONSUMER_PREFETCH_COUNT = 1000;
-const batchSize = 1000;
+
 @Injectable()
 export class ProductImportConsumerService
   implements OnModuleInit, OnModuleDestroy

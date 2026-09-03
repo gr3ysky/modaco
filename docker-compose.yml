@@ -25,7 +25,7 @@ services:
     build:
       context: .
       target: production
-    command: ['node', 'dist/consumers/main.js']
+    command: ['node', 'dist/consumers/import-products/main.js']
     env_file:
       - .env
     environment:
@@ -36,6 +36,24 @@ services:
     restart: unless-stopped
     deploy:
       replicas: 3
+  
+  process-file-consumer:
+    build:
+      context: .
+      target: production
+    command: ['node', 'dist/consumers/process-file/main.js']
+    env_file:
+      - .env
+    environment:
+      RABBITMQ_URL: ${RABBITMQ_URL}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - shared_data:/app/data
+    deploy:
+      replicas: 1
 
   postgres:
     image: postgres:16-alpine

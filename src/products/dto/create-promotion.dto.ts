@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsDateString,
   IsEnum,
@@ -9,10 +9,17 @@ import {
   IsUUID,
   MaxLength,
   Min,
+  Validate,
 } from 'class-validator';
 import { PromotionDiscountType } from '../entities/promotion.entity.js';
+import {
+  ExactlyOnePromotionTargetConstraint,
+  PromotionDateRangeConstraint,
+  PromotionDiscountValueConstraint,
+} from './promotion-validation.js';
 
 export class CreatePromotionDto {
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
@@ -24,12 +31,14 @@ export class CreatePromotionDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
+  @Validate(PromotionDiscountValueConstraint)
   value: number;
 
   @IsDateString()
   startDate: string;
 
   @IsDateString()
+  @Validate(PromotionDateRangeConstraint)
   endDate: string;
 
   @IsOptional()
@@ -39,4 +48,7 @@ export class CreatePromotionDto {
   @IsOptional()
   @IsUUID('4')
   categoryId?: string;
+
+  @Validate(ExactlyOnePromotionTargetConstraint)
+  readonly promotionTarget?: undefined;
 }

@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { ListProductsQueryDto } from '../dto/list-products-query.dto.js';
@@ -35,9 +31,6 @@ export type ProductListingPage = {
   };
 };
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 @Injectable()
 export class ProductsService {
   constructor(
@@ -47,10 +40,10 @@ export class ProductsService {
   ) {}
 
   async findAll(query: ListProductsQueryDto): Promise<ProductListingPage> {
-    const categoryId = this.parseCategoryId(query.categoryId);
-    const page = this.parsePositiveInteger(query.page, 'page', 1);
-    const size = this.parsePositiveInteger(query.size, 'size', 20);
-    const sortOrder = this.parseSortOrder(query.sortOrder);
+    const categoryId = query.categoryId;
+    const page = query.page ?? 1;
+    const size = query.size ?? 20;
+    const sortOrder = (query.sortOrder ?? 'asc').toUpperCase() as SortOrder;
     const offset = (page - 1) * size;
 
     const effectivePrice = `
@@ -152,44 +145,5 @@ export class ProductsService {
     }
 
     return product;
-  }
-
-  private parseCategoryId(value: string | undefined): string | null {
-    if (value === undefined) {
-      return null;
-    }
-    if (!UUID_PATTERN.test(value)) {
-      throw new BadRequestException('categoryId must be a UUID');
-    }
-    return value;
-  }
-
-  private parsePositiveInteger(
-    value: number | undefined,
-    field: 'page' | 'size',
-    defaultValue: number,
-  ): number {
-    if (value === undefined) {
-      return defaultValue;
-    }
-    if (!Number.isInteger(value) || value < 1) {
-      throw new BadRequestException(`${field} must be a positive integer`);
-    }
-    const parsedValue = value;
-    if (field === 'size' && parsedValue > 100) {
-      throw new BadRequestException('size cannot exceed 100');
-    }
-    return parsedValue;
-  }
-
-  private parseSortOrder(value: string | undefined): SortOrder {
-    if (value === undefined) {
-      return 'ASC';
-    }
-    const sortOrder = value.toUpperCase();
-    if (sortOrder !== 'ASC' && sortOrder !== 'DESC') {
-      throw new BadRequestException('sortOrder must be asc or desc');
-    }
-    return sortOrder;
   }
 }

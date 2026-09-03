@@ -182,6 +182,37 @@ describe('API endpoints (e2e)', () => {
     expect(promotionsService.create).toHaveBeenCalledWith(input);
   });
 
+  it('validates cross-field promotion constraints before calling the service', async () => {
+    const input = {
+      name: 'Spring sale',
+      discountType: 'percentage',
+      value: 15,
+      startDate: '2026-03-01T00:00:00.000Z',
+      endDate: '2026-03-31T23:59:59.000Z',
+      productId,
+    };
+
+    await request(app.getHttpServer())
+      .post('/promotions')
+      .send({ ...input, startDate: input.endDate })
+      .expect(400);
+    await request(app.getHttpServer())
+      .post('/promotions')
+      .send({ ...input, value: 101 })
+      .expect(400);
+    await request(app.getHttpServer())
+      .post('/promotions')
+      .send({ ...input, categoryId })
+      .expect(400);
+    await request(app.getHttpServer())
+      .patch(`/promotions/${promotionId}/assignment`)
+      .send({})
+      .expect(400);
+
+    expect(promotionsService.create).not.toHaveBeenCalled();
+    expect(promotionsService.assign).not.toHaveBeenCalled();
+  });
+
   it('PATCH /promotions/:id/assignment reassigns a promotion', async () => {
     const assignment = { categoryId };
     promotionsService.assign.mockResolvedValue({

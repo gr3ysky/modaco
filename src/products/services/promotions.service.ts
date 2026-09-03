@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -9,10 +8,7 @@ import { Repository } from 'typeorm';
 import { AssignPromotionDto } from '../dto/assign-promotion.dto.js';
 import { CreatePromotionDto } from '../dto/create-promotion.dto.js';
 import { ProductCategoryEntity } from '../entities/productCategory.entity.js';
-import {
-  Promotion,
-  PromotionDiscountType,
-} from '../entities/promotion.entity.js';
+import { Promotion } from '../entities/promotion.entity.js';
 import { ProductEntity } from '../entities/product.entity.js';
 
 type PromotionTarget = {
@@ -20,9 +16,6 @@ type PromotionTarget = {
   category: ProductCategoryEntity | null;
   categoryId: string;
 };
-
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class PromotionsService {
@@ -36,7 +29,13 @@ export class PromotionsService {
   ) {}
 
   async create(input: CreatePromotionDto): Promise<Promotion> {
-    const details = this.validatePromotionDetails(input);
+    const details = {
+      name: input.name,
+      discountType: input.discountType,
+      value: String(input.value),
+      startDate: new Date(input.startDate),
+      endDate: new Date(input.endDate),
+    };
     const target = await this.resolveTarget(input);
 
     await this.ensureNoConflict({
@@ -81,64 +80,11 @@ export class PromotionsService {
     return cancelledPromotion;
   }
 
-  private validatePromotionDetails(input: CreatePromotionDto) {
-    const name = input.name.trim();
-    if (!name || name.length > 255) {
-      throw new BadRequestException(
-        'Promotion name must be between 1 and 255 characters',
-      );
-    }
-
-    if (
-      !Object.values(PromotionDiscountType).includes(input.discountType)
-    ) {
-      throw new BadRequestException(
-        'discountType must be percentage or fixed_amount',
-      );
-    }
-
-    const value = Number(input.value);
-    if (!Number.isFinite(value) || value <= 0) {
-      throw new BadRequestException(
-        'Promotion value must be greater than zero',
-      );
-    }
-    if (
-      input.discountType === PromotionDiscountType.PERCENTAGE &&
-      value > 100
-    ) {
-      throw new BadRequestException('Percentage promotions cannot exceed 100');
-    }
-
-    const startDate = this.parseDate(input.startDate, 'startDate');
-    const endDate = this.parseDate(input.endDate, 'endDate');
-    if (startDate >= endDate) {
-      throw new BadRequestException('startDate must be before endDate');
-    }
-
-    return {
-      name,
-      discountType: input.discountType,
-      value: String(value),
-      startDate,
-      endDate,
-    };
-  }
-
   private async resolveTarget(
     input: AssignPromotionDto,
   ): Promise<PromotionTarget> {
-    const hasProduct = input.productId !== undefined;
-    const hasCategory = input.categoryId !== undefined;
-    if (hasProduct === hasCategory) {
-      throw new BadRequestException(
-        'Assign the promotion to exactly one product or category',
-      );
-    }
-
     if (input.productId !== undefined) {
       const productId = input.productId;
-      this.assertUuid(productId, 'productId');
       const product = await this.productsRepository
         .createQueryBuilder('product')
         .leftJoinAndSelect('product.category', 'category')
@@ -154,7 +100,6 @@ export class PromotionsService {
     }
 
     const categoryId = input.categoryId!;
-    this.assertUuid(categoryId, 'categoryId');
     const category = await this.categoriesRepository.findOne({
       where: { id: categoryId },
     });
@@ -224,22 +169,5 @@ export class PromotionsService {
       throw new NotFoundException(`Promotion with ID ${id} was not found`);
     }
     return promotion;
-  }
-
-  private parseDate(value: unknown, field: string): Date {
-    if (typeof value !== 'string') {
-      throw new BadRequestException(`${field} must be an ISO-8601 date string`);
-    }
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      throw new BadRequestException(`${field} must be a valid date`);
-    }
-    return date;
-  }
-
-  private assertUuid(value: string, field: string): void {
-    if (!UUID_PATTERN.test(value)) {
-      throw new BadRequestException(`${field} must be a UUID`);
-    }
   }
 }

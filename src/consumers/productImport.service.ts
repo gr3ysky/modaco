@@ -40,13 +40,19 @@ export class ProductImportService {
         return false;
       }
 
-      await this.productsRepository.save({
-        name,
-        sku,
-        basePrice,
-        stockQuantity,
-        category,
-      } as Omit<ProductEntity, 'id' | 'promotions'>);
+      await this.productsRepository.upsert(
+        {
+          name,
+          sku,
+          basePrice,
+          stockQuantity,
+          category,
+        } as Omit<ProductEntity, 'id' | 'promotions'>,
+        {
+          conflictPaths: ['sku'],
+          skipUpdateIfNoValuesChanged: true,
+        },
+      );
       return true;
     } catch (error: any) {
       this.logger.error(

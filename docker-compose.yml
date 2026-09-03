@@ -34,6 +34,8 @@ services:
       rabbitmq:
         condition: service_healthy
     restart: unless-stopped
+    deploy:
+      replicas: 3
 
   postgres:
     image: postgres:16-alpine

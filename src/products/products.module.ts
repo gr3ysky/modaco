@@ -9,7 +9,6 @@ import { PromotionsController } from './controllers/promotions.controller.js';
 import { PromotionsService } from './services/promotions.service.js';
 import { FileImportService } from './services/fileImport.service.js';
 import { FileImportEntity } from './entities/fileImport.entity.js';
-import { ScheduleModule } from '@nestjs/schedule';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -18,7 +17,6 @@ import { ScheduleModule } from '@nestjs/schedule';
       PromotionEntity,
       FileImportEntity,
     ]),
-    ScheduleModule.forRoot(),
   ],
   controllers: [ProductsController, PromotionsController],
   providers: [ProductsService, PromotionsService, FileImportService],

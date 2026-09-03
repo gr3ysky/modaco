@@ -94,18 +94,20 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
-generate sample data
+## Generate sample data
 
 ```
 node ./scripts/generateSampleData.cjs
 ```
 
-Send sample data
+## Send sample data
 
 ```
-curl --request POST \
-  --url http://localhost:3000/products \
-  --header 'Content-Type: multipart/form-data' \
-  --header 'User-Agent: insomnia/11.4.0' \
-  --form file=@./scripts/generated_sample_data.csv
+curl -X POST http://localhost:3000/products \
+-F "file=@./scripts/generated_sample_data.csv"
 ```
+
+## Notes
+
+- We do not clear the files after the process. We would probably want them to be kept, ideally in a s3 bucket or similar.
+- Another efficient processing for product import can be achieved via RabbitMQ and multiple consumers. Current implementation uses distrubuted lock for handling concurrency issues. It is safe to use multiple instances of the api.

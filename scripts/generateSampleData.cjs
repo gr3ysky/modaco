@@ -8,6 +8,9 @@ const categories = [ 'Electronics', 'Home & Kitchen', 'Office Supplies' ];
 
 const buildSampleData = () => {
   // Use a WriteStream for fast disk writing
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
   const stream = fs.createWriteStream(filePath);
 
   // Write CSV Header

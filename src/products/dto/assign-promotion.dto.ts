@@ -1,4 +1,11 @@
+import { IsOptional, IsUUID } from 'class-validator';
+
 export class AssignPromotionDto {
-  productId?: unknown;
-  categoryId?: unknown;
+  @IsOptional()
+  @IsUUID('4')
+  productId?: string;
+
+  @IsOptional()
+  @IsUUID('4')
+  categoryId?: string;
 }

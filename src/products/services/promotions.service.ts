@@ -82,7 +82,7 @@ export class PromotionsService {
   }
 
   private validatePromotionDetails(input: CreatePromotionDto) {
-    const name = typeof input.name === 'string' ? input.name.trim() : '';
+    const name = input.name.trim();
     if (!name || name.length > 255) {
       throw new BadRequestException(
         'Promotion name must be between 1 and 255 characters',
@@ -90,9 +90,7 @@ export class PromotionsService {
     }
 
     if (
-      !Object.values(PromotionDiscountType).includes(
-        input.discountType as PromotionDiscountType,
-      )
+      !Object.values(PromotionDiscountType).includes(input.discountType)
     ) {
       throw new BadRequestException(
         'discountType must be percentage or fixed_amount',
@@ -120,7 +118,7 @@ export class PromotionsService {
 
     return {
       name,
-      discountType: input.discountType as PromotionDiscountType,
+      discountType: input.discountType,
       value: String(value),
       startDate,
       endDate,
@@ -130,18 +128,16 @@ export class PromotionsService {
   private async resolveTarget(
     input: AssignPromotionDto,
   ): Promise<PromotionTarget> {
-    const hasProduct =
-      typeof input.productId === 'string' && input.productId.length > 0;
-    const hasCategory =
-      typeof input.categoryId === 'string' && input.categoryId.length > 0;
+    const hasProduct = input.productId !== undefined;
+    const hasCategory = input.categoryId !== undefined;
     if (hasProduct === hasCategory) {
       throw new BadRequestException(
         'Assign the promotion to exactly one product or category',
       );
     }
 
-    if (hasProduct) {
-      const productId = input.productId as string;
+    if (input.productId !== undefined) {
+      const productId = input.productId;
       this.assertUuid(productId, 'productId');
       const product = await this.productsRepository
         .createQueryBuilder('product')
@@ -157,7 +153,7 @@ export class PromotionsService {
       return { product, category: null, categoryId: product.category.id };
     }
 
-    const categoryId = input.categoryId as string;
+    const categoryId = input.categoryId!;
     this.assertUuid(categoryId, 'categoryId');
     const category = await this.categoriesRepository.findOne({
       where: { id: categoryId },

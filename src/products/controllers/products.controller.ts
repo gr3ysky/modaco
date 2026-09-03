@@ -19,7 +19,7 @@ import {
 } from '../services/products.service.js';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { extname, join } from 'path';
 import { ProductImportService } from '../services/productImport.service.js';
 
 @Controller('products')
@@ -46,8 +46,10 @@ export class ProductsController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        // Target directory where your Docker volume is mounted
-        destination: '/app/data',
+        // Compose mounts this path in production; a writable temp directory
+        // keeps the API usable by local and E2E test processes as well.
+        destination:
+          process.env.UPLOAD_DIRECTORY ?? join('/tmp', 'modaco-uploads'),
         filename: (req, file, callback) => {
           // Generate a unique filename: timestamp-random.ext
           const uniqueSuffix =

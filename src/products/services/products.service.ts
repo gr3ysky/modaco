@@ -154,40 +154,37 @@ export class ProductsService {
     return product;
   }
 
-  private parseCategoryId(value: unknown): string | null {
+  private parseCategoryId(value: string | undefined): string | null {
     if (value === undefined) {
       return null;
     }
-    if (typeof value !== 'string' || !UUID_PATTERN.test(value)) {
+    if (!UUID_PATTERN.test(value)) {
       throw new BadRequestException('categoryId must be a UUID');
     }
     return value;
   }
 
   private parsePositiveInteger(
-    value: unknown,
+    value: number | undefined,
     field: 'page' | 'size',
     defaultValue: number,
   ): number {
     if (value === undefined) {
       return defaultValue;
     }
-    if (typeof value !== 'string' || !/^[1-9]\d*$/.test(value)) {
+    if (!Number.isInteger(value) || value < 1) {
       throw new BadRequestException(`${field} must be a positive integer`);
     }
-    const parsedValue = Number(value);
+    const parsedValue = value;
     if (field === 'size' && parsedValue > 100) {
       throw new BadRequestException('size cannot exceed 100');
     }
     return parsedValue;
   }
 
-  private parseSortOrder(value: unknown): SortOrder {
+  private parseSortOrder(value: string | undefined): SortOrder {
     if (value === undefined) {
       return 'ASC';
-    }
-    if (typeof value !== 'string') {
-      throw new BadRequestException('sortOrder must be asc or desc');
     }
     const sortOrder = value.toUpperCase();
     if (sortOrder !== 'ASC' && sortOrder !== 'DESC') {
